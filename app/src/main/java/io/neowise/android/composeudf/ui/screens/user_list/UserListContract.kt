@@ -18,6 +18,8 @@ class UserListContract {
     interface Action : UDF.Action {
         object Load : Action
         object CreateUser : Action
+        object TriggerFakeEvent : Action
+
         data class UserAppended(val user: User) : Action
         data class UserListChanged(val users: List<User>) : Action
         data class NameChanged(val value: TextFieldValue) : Action
@@ -30,7 +32,8 @@ class UserListContract {
     }
 
     interface Event : UDF.Event {
-        data class OnShowError(val message: String) : Event
+        data class ShowError(val message: String) : Event
         object OnCloseApp : Event
+        object FakeNavigate : Event
     }
 }
