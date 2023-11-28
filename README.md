@@ -23,21 +23,21 @@ viewModel.dispatch(Action.LoadContent)
 
 ViewModel
 ```kotlin
-fun reduce(action: Action, state: State): Pair<State, Set<Effect>> = when(action) {
+fun reduce(action: Action, state: State): Update<State, Effect, Event> = when(action) {
     is Action.LoadContent -> {
-        state.copy(isLoading = true) with Effect.FetchData
+        Update(state.copy(isLoading = true), Effect.FetchData)
     }
     is Action.UpdateContent -> {
-        state.copy(isLoading = false, content = action.content)
+        Update(state.copy(isLoading = false, content = action.content))
     }
 }
 ```
 ```kotlin
-fun affect(effect: Effect): Flow<Action?> = flow {
+fun affect(effect: Effect): Flow<EffectResult<Action, Event>> = flow {
     when(effect) {
         is Effect.FetchData -> {
             fetchDataUseCase().collect { content ->
-                emit(UpdateContent(content))
+                emit(UpdateContent(content).asResult())
             }
         }
     }
@@ -58,7 +58,7 @@ fun UI(
 
     val context = LocalContext.current
 
-    EventEffect(events) { event ->
+    OnEvent(events = events) { event ->
         when(event) {
             is ShowMessage -> showToast(context, event.message)
         }
