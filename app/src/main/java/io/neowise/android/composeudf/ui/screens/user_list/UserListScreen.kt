@@ -36,6 +36,7 @@ import io.neowise.android.composeudf.ui.screens.user_list.UserListContract.Event
 import io.neowise.android.composeudf.ui.screens.user_list.components.UserItem
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,7 +138,7 @@ private fun DefaultPreview() {
                     User("Jason", "Stathem")
                 )
             ),
-            events = MutableStateFlow(UDF.NoneEvent),
+            events = flowOf(),
             dispatch = {
             },
             closeApp = {

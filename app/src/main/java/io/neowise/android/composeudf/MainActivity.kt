@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
                     UserListScreen(
                         state = viewModel.state.value,
                         events = viewModel.events,
-                        dispatch = viewModel::action,
+                        dispatch = viewModel::dispatch,
                         closeApp = ::finish,
                         navigateNext = callback {
                             navController.navigate("test")
@@ -39,8 +39,10 @@ class MainActivity : ComponentActivity() {
                 composable("test") {
                     TestScreen()
                 }
+
             }
         }
-        viewModel.action(Action.Load)
+        viewModel.dispatch(Action.Load)
     }
 }
+
