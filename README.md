@@ -16,6 +16,30 @@
 
 **reduce** - получает Action и State, синхронно применяет action к state и возращает обновленный State и список Side Effect'ов в Reducer. Так же может производить events
 
+**Slice** - часть состояния и логики, которая может быть подключена к UDFViewModel
+
+# UDFViewModel
+
+
+Contract
+```kotlin
+
+data class State(
+    val isLoading: Boolean = false,
+    val content: String = ""
+)
+
+sealed class Action {
+    object LoadContent : Action()
+    data class UpdateContent(val content: String) : Action()
+}
+
+sealed class Effect {
+    object FetchData : Effect()
+}
+
+```
+
 Activity
 ```kotlin
 viewModel.dispatch(Action.LoadContent)
@@ -23,22 +47,28 @@ viewModel.dispatch(Action.LoadContent)
 
 ViewModel
 ```kotlin
-fun reduce(action: Action, state: State): Update<State, Effect, Event> = when(action) {
+fun ReducerScope.reduce(action: Action, state: State): State = when(action) {
     is Action.LoadContent -> {
-        Update(state.copy(isLoading = true), Effect.FetchData)
+        sendEffect(Effect.FetchData)
+        state.copy(isLoading = true)
     }
     is Action.UpdateContent -> {
-        Update(state.copy(isLoading = false, content = action.content))
+        state.copy(isLoading = false, content = action.content)
+    }
+    else -> {
+        ActionNotDispatched(action)
     }
 }
-```
-```kotlin
-fun affect(effect: Effect): Flow<EffectResult<Action, Event>> = flow {
+
+fun EffectorScope.affect(effect: Effect) {
     when(effect) {
         is Effect.FetchData -> {
             fetchDataUseCase().collect { content ->
-                emit(UpdateContent(content).asResult())
+                dispatch(UpdateContent(content = content))
             }
+        }
+        else -> {
+            EffectNotDispatched(effect)
         }
     }
 }
@@ -52,8 +82,8 @@ Compose
 @Composable 
 fun UI(
     state: State,
-    events: Events,
-    dispatch: (Action) -> Unit
+    events: EventsHolder<UDF.Event>,
+    dispatch: (UDF.Action) -> Unit
 ) {
 
     val context = LocalContext.current
@@ -80,5 +110,79 @@ fun UI(
     ) {
         Text("Load Details")
     }
+}
+```
+
+# Slices
+
+UDFViewModel умеет диспатчить события во все подключенные Slices и обновлять состояние
+
+Create contract
+```kotlin
+class State(
+    val isLoading: Boolean = false,
+    val content: String = ""
+)
+
+sealed class Action {
+    object LoadContent : Action()
+    data class UpdateContent(val content: String) : Action()
+}
+
+sealed class Effect {
+    object FetchData : Effect()
+}
+```
+
+Add state to Root State
+```kotlin
+data class RootState(
+    val userProfileState: State,
+    // ...
+)
+```
+
+Create slice
+
+```kotlin
+class UserProfileSlice : Slice<State> {
+    fun ReducerScope.reduce(action: Action, state: State): State = when(action) {
+        is Action.LoadContent -> {
+            sendEffect(Effect.FetchData)
+            state.copy(isLoading = true)
+        }
+        is Action.UpdateContent -> {
+            state.copy(isLoading = false, content = action.content)
+        }
+        else -> {
+            ActionNotDispatched(action)
+        }
+    }
+    
+    fun EffectorScope.affect(effect: Effect) {
+        when(effect) {
+            is Effect.FetchData -> {
+                fetchDataUseCase().collect { content ->
+                    dispatch(UpdateContent(content = content))
+                }
+            }
+            else -> {
+                EffectNotDispatched(effect)
+            }
+        }
+    }
+}
+```
+
+## Add slice to viewModel
+
+```kotlin
+
+val userProfileSlice = UserProfileSlice()
+
+init {
+    viewModel.use(userProfileSlice, { state.userProfileState }, { state, userProfileState ->
+        state.copy(userProfileState = userProfileState)
+    })
 }
 ```
