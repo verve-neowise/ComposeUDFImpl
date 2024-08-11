@@ -3,6 +3,7 @@ package io.neowise.android.composeudf.ui.screens.user_list
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -29,27 +30,27 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.neowise.android.composeudf.core.OnEvent
 import io.neowise.android.composeudf.core.callback
+import io.neowise.android.composeudf.core.udf.EventsHolder
 import io.neowise.android.composeudf.domain.User
 import io.neowise.android.composeudf.core.udf.UDF
 import io.neowise.android.composeudf.ui.screens.user_list.UserListContract.Action
 import io.neowise.android.composeudf.ui.screens.user_list.UserListContract.Event
 import io.neowise.android.composeudf.ui.screens.user_list.components.UserItem
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import io.neowise.android.composeudf.ui.screens.user_list.profile_info.ProfileInfo
 import kotlinx.coroutines.flow.flowOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserListScreen(
     state: UserListContract.State,
-    events: Flow<UDF.Event>,
-    dispatch: (Action) -> Unit,
+    events: EventsHolder<UDF.Event>,
+    dispatch: (UDF.Action) -> Unit,
     closeApp: () -> Unit,
     navigateNext: () -> Unit,
 ) {
     val context = LocalContext.current
 
-    OnEvent(events = events) { event ->
+    OnEvent(eventsHolder = events) { event ->
         when(event) {
             is Event.ShowError -> {
                 Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
@@ -116,11 +117,18 @@ fun UserListScreen(
                 }
             }
             else {
-                LazyColumn(
-                    modifier = Modifier.padding(padding)
-                ) {
-                    items(state.users, { it.name + it.surname }) { user ->
-                        UserItem(name = user.name, surname = user.surname)
+                Column {
+                    ProfileInfo(
+                        modifier = Modifier.padding(8.dp),
+                        state = state.profileInfoState,
+                        dispatch = dispatch
+                    )
+                    LazyColumn(
+                        modifier = Modifier.weight(1f).padding(padding)
+                    ) {
+                        items(state.users, { it.name + it.surname }) { user ->
+                            UserItem(name = user.name, surname = user.surname)
+                        }
                     }
                 }
             }
@@ -138,7 +146,7 @@ private fun DefaultPreview() {
                     User("Jason", "Stathem")
                 )
             ),
-            events = flowOf(),
+            events = EventsHolder(),
             dispatch = {
             },
             closeApp = {

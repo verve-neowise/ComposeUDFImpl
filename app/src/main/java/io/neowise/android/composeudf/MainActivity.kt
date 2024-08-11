@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
                     UserListScreen(
                         state = viewModel.state.value,
                         events = viewModel.events,
-                        dispatch = viewModel::dispatch,
+                        dispatch = viewModel.dispatch,
                         closeApp = ::finish,
                         navigateNext = callback {
                             navController.navigate("test")

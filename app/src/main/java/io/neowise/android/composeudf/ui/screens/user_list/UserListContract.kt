@@ -3,10 +3,13 @@ package io.neowise.android.composeudf.ui.screens.user_list
 import androidx.compose.ui.text.input.TextFieldValue
 import io.neowise.android.composeudf.domain.User
 import io.neowise.android.composeudf.core.udf.UDF
+import io.neowise.android.composeudf.ui.screens.user_list.profile_info.ProfileInfoContract
+import io.neowise.android.composeudf.ui.screens.user_list.profile_info.ProfileInfoSlice
 
 class UserListContract {
 
     data class State(
+        val profileInfoState: ProfileInfoContract.State = ProfileInfoContract.State(),
         val isLoading: Boolean = false,
         val isAddEnabled: Boolean = true,
         val error: String? = null,

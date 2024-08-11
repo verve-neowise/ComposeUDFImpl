@@ -3,8 +3,8 @@ package io.neowise.android.composeudf.core
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import io.neowise.android.composeudf.core.udf.EventsHolder
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
@@ -66,10 +66,10 @@ fun <F, S, T> callback(key: Any?, callback: (F, S, T) -> Unit): (F, S, T) -> Uni
 }
 
 @Composable
-fun <T> OnEvent(events: Flow<T>, handler: (event: T) -> Unit) {
+fun <T> OnEvent(eventsHolder: EventsHolder<T>, handler: (event: T) -> Unit) {
     LaunchedEffect(Unit) {
         withContext(Dispatchers.Main.immediate) {
-            events
+            eventsHolder.events
                 .onEach(handler)
                 .collect()
         }

@@ -1,78 +1,88 @@
 package io.neowise.android.composeudf.ui.screens.user_list
 
 import androidx.compose.ui.text.input.TextFieldValue
-import io.neowise.android.composeudf.core.udf.EffectResult
+import io.neowise.android.composeudf.core.udf.ActionNotDispatched
+import io.neowise.android.composeudf.core.udf.EffectNotDispatched
+import io.neowise.android.composeudf.core.udf.EffectorScope
+import io.neowise.android.composeudf.core.udf.ReducerScope
+import io.neowise.android.composeudf.core.udf.UDF
 import io.neowise.android.composeudf.core.udf.UDFViewModel
-import io.neowise.android.composeudf.core.udf.Update
-import io.neowise.android.composeudf.core.udf.asResult
 import io.neowise.android.composeudf.data.UserRepositoryImpl
 import io.neowise.android.composeudf.domain.UserRepository
 import io.neowise.android.composeudf.ui.screens.user_list.UserListContract.Action
 import io.neowise.android.composeudf.ui.screens.user_list.UserListContract.Effect
 import io.neowise.android.composeudf.ui.screens.user_list.UserListContract.Event
 import io.neowise.android.composeudf.ui.screens.user_list.UserListContract.State
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import io.neowise.android.composeudf.ui.screens.user_list.profile_info.ProfileInfoSlice
 
-class UserListViewModel : UDFViewModel<State, Action, Effect, Event>(State()) {
+class UserListViewModel : UDFViewModel<State>(State()) {
 
     private val userRepository: UserRepository = UserRepositoryImpl()
+    private val profileInfoSlice = ProfileInfoSlice()
 
-    override fun reduce(action: Action, state: State): Update<State, Effect, Event> = when (action) {
+    init {
+        use(profileInfoSlice, { state -> state.profileInfoState }) { state, profileInfoState ->
+            state.copy(profileInfoState = profileInfoState)
+        }
+    }
+
+    override fun ReducerScope.reduce(action: UDF.Action, state: State): State = when(action) {
         is Action.Load -> {
-            Update(state.copy(isLoading = true), Effect.FetchUsers)
+            sendEffect(Effect.FetchUsers)
+            state.copy(isLoading = true)
         }
         is Action.CreateUser -> {
             val name = state.name.text.trim()
             val surname = state.surname.text.trim()
 
             if (name.isEmpty() || surname.isEmpty()) {
-                Update(state, Event.ShowError("Fill entries"))
+                sendEvent(Event.ShowError("Fill entries"))
+                state
             }
             else {
-                Update(
-                    state.copy(
-                        name = TextFieldValue(),
-                        surname = TextFieldValue(),
-                        isAddEnabled = false
-                    ),
-                    Effect.PostUser(state.name.text, state.surname.text)
+                sendEffect(Effect.PostUser(state.name.text, state.surname.text))
+                state.copy(
+                    name = TextFieldValue(),
+                    surname = TextFieldValue(),
+                    isAddEnabled = false
                 )
             }
         }
         is Action.UserListChanged -> {
-            Update(state.copy(isLoading = false, users = action.users))
+            state.copy(isLoading = false, users = action.users)
         }
         is Action.UserAppended -> {
-            Update(state.copy(isAddEnabled = true, users = state.users + action.user))
+            state.copy(isAddEnabled = true, users = state.users + action.user)
         }
         is Action.NameChanged -> {
-            Update(state.copy(name = action.value))
+            state.copy(name = action.value)
         }
         is Action.SurnameChanged -> {
-            Update(state.copy(surname = action.value))
+            state.copy(surname = action.value)
         }
         is Action.TriggerFakeEvent -> {
-            Update(state, Event.FakeNavigate)
+            sendEvent(Event.FakeNavigate)
+            state
         }
         else -> {
-            Update(state)
+            ActionNotDispatched(action)
         }
     }
 
-    override fun affect(effect: Effect): Flow<EffectResult<Action, Event>> = flow {
+    override suspend fun EffectorScope.affect(effect: UDF.Effect) {
         when (effect) {
             Effect.FetchUsers -> {
                 userRepository.getUsers().collect {
-                    emit(Action.UserListChanged(it).asResult())
+                    dispatch(Action.UserListChanged(it))
                 }
             }
             is Effect.PostUser -> {
                 userRepository.createUser(effect.name, effect.username).collect {
-                    emit(Action.UserAppended(it).asResult())
+                    dispatch(Action.UserAppended(it))
                 }
             }
             else -> {
+                EffectNotDispatched(effect)
             }
         }
     }
